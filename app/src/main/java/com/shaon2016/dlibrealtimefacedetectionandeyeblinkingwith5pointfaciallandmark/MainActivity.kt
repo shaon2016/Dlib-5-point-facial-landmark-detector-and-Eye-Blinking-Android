@@ -19,25 +19,17 @@ class MainActivity : AppCompatActivity() {
         // Example of a call to a native method
 //        findViewById<TextView>(R.id.sample_text).text = stringFromJNI()
 //
-//        val modelPath =
-//            "${getExternalFilesDirs(Environment.DIRECTORY_DOCUMENTS).first()}/shape_predictor_68_face_landmarks.dat"
-//        if (!File(modelPath).exists())
-//            FileUtil.copyFileFromAsset(
-//                this, "shape_predictor_68_face_landmarks.dat",
-//                modelPath
-//            )
-//
-//        Native.loadModel(modelPath)
+        val modelPath =
+            "${getExternalFilesDirs(Environment.DIRECTORY_DOCUMENTS).first()}/shape_predictor_68_face_landmarks.dat"
+        if (!File(modelPath).exists())
+            FileUtil.copyFileFromAsset(
+                this, "shape_predictor_68_face_landmarks.dat",
+                modelPath
+            )
+
+        Native.loadModel(modelPath)
 
         val b = BitmapFactory.decodeResource(resources, R.drawable.man)
-//        Log.d(
-//            "DATATAG",
-//            Native.detectLandmark(
-//                bitmapToByteArray(b),
-//                b.width,
-//                b.height, 1
-//            ).toString()
-//        )
 
 
         val bmp = b.copy(Bitmap.Config.ARGB_8888, true)
@@ -54,6 +46,10 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<ImageView>(R.id.iv).setImageBitmap(b)
         findViewById<ImageView>(R.id.iv2).setImageBitmap(bmp)
+
+        // Detect landmark
+        Native.detectLandmark(pixels, width, height)
+
     }
 
     companion object {

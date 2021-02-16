@@ -41,7 +41,7 @@ int imageFormat = NV21;
 void convertNV21ToArray2d(JNIEnv *env, dlib::array2d<dlib::rgb_pixel> &out,
                           jbyteArray data, jint width, jint height);
 
-jbyteArray convertBitmapArrayToNV21(JNIEnv *env, jintArray argbPixels, jint width, jint height);
+jbyteArray convertBitmapPixelToNV21(JNIEnv *env, jintArray argbPixels, jint width, jint height);
 
 
 extern "C" JNIEXPORT void JNICALL
@@ -74,7 +74,7 @@ JNI_METHOD(detectLandmark)(
     array2d<rgb_pixel> img;
 
     try {
-        jbyteArray nv21ByteArray = convertBitmapArrayToNV21(env, pixels, width, height);
+        jbyteArray nv21ByteArray = convertBitmapPixelToNV21(env, pixels, width, height);
         convertNV21ToArray2d(env, img, nv21ByteArray, width, height);
 
         LOGD("JNI: Conversion successful image }");
@@ -82,6 +82,19 @@ JNI_METHOD(detectLandmark)(
         LOGD("JNI: failed to convert image -> %s", e.what());
     }
 
+    pyramid_up(img);
+
+    // We need a face detector.  We will use this to get bounding boxes for
+    // each face in an image.
+    frontal_face_detector detector = get_frontal_face_detector();
+    // Now tell the face detector to give us a list of bounding boxes
+    // around all the faces in the image.
+    try {
+        std::vector<rectangle> dets = detector(img);
+        LOGD("JNI: Number of faces detected -> %s", dets.size());
+    } catch (exception &e) {
+        LOGD("JNI: Failed to detect -> %s", e.what());
+    }
 
     return 0;
 }
@@ -218,28 +231,32 @@ void downScaleNV21(JNIEnv *env, jobject obj,
 }
 
 
-jbyteArray convertBitmapArrayToNV21(JNIEnv *env, jintArray argbPixels, jint width, jint height) {
+jbyteArray convertBitmapPixelToNV21(JNIEnv *env, jintArray argbPixels, jint width, jint height) {
 
-
-//    jbyteArray yuv = env->NewByteArray(width * ((height) * (3 / 2)));
-    jbyteArray yuv = env->NewByteArray(width * height * 3 / 2);
+    jbyteArray yuv = env->NewByteArray(
+            height * width + 2 * (int) ceil(height / 2.0) * (int) ceil(width / 2.0));
+//    jbyteArray yuv = env->NewByteArray(width * height * 3 / 2);
     jbyte *yuv420sp = env->GetByteArrayElements(yuv, NULL);
 
     jint *argb = env->GetIntArrayElements(argbPixels, 0);
 
     int frameSize = width * height;
     int yIndex = 0;
-    int uvIndex = frameSize;
+    int uIndex = frameSize;
+    int vIndex = frameSize + ((env->GetArrayLength(yuv) - frameSize) / 2);
     int a, R, G, B, Y, U, V;
     int index = 0;
 
     for (int j = 0; j < height; j++) {
         for (int i = 0; i < width; i++) {
+
             a = (argb[index] & 0xff000000) >> 24; // a is not used obviously
             R = (argb[index] & 0xff0000) >> 16;
             G = (argb[index] & 0xff00) >> 8;
             B = (argb[index] & 0xff) >> 0;
+
             // well known RGB to YUV algorithm
+
             Y = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
             U = ((-38 * R - 74 * G + 112 * B + 128) >> 8) + 128;
             V = ((112 * R - 94 * G - 18 * B + 128) >> 8) + 128;
@@ -249,9 +266,10 @@ jbyteArray convertBitmapArrayToNV21(JNIEnv *env, jintArray argbPixels, jint widt
             //    pixel AND every other scanline.
             yuv420sp[yIndex++] = ((Y < 0) ? 0 : ((Y > 255) ? 255 : Y));
             if (j % 2 == 0 && index % 2 == 0) {
-                yuv420sp[uvIndex++] = ((V < 0) ? 0 : ((V > 255) ? 255 : V));
-                yuv420sp[uvIndex++] = ((U < 0) ? 0 : ((U > 255) ? 255 : U));
+                yuv420sp[uIndex++] = ((U < 0) ? 0 : ((U > 255) ? 255 : U));
+                yuv420sp[vIndex++] = ((V < 0) ? 0 : ((V > 255) ? 255 : V));
             }
+
             index++;
         }
     }
@@ -261,3 +279,4 @@ jbyteArray convertBitmapArrayToNV21(JNIEnv *env, jintArray argbPixels, jint widt
 
     return yuv;
 }
+
