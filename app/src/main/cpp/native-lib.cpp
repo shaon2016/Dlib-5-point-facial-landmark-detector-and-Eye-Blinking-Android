@@ -72,9 +72,9 @@ JNI_METHOD(detectLandmarkARGB)(
     array2d<unsigned char> img;
 
     jint *p = env->GetIntArrayElements(pixels, 0);
-    cv::Mat mFrame = cv::Mat(height + height / 2, width, CV_8UC4,  p);
+    cv::Mat mFrame = cv::Mat(height + height / 2, width, CV_8UC4,  p).clone();
     // the next only is a extra example to gray convertion:
-    cv::Mat mOut(height + height / 2, width, CV_8UC3);
+    cv::Mat mOut;
     // to grayscale
     cv::cvtColor(mFrame, mOut, cv::COLOR_RGB2GRAY);
 
