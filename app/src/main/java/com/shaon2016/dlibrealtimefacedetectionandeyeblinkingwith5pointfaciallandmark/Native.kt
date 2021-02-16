@@ -1,5 +1,7 @@
 package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark
 
+import android.graphics.YuvImage
+
 
 /**
  * Native:  act as an interface between Kotlin and C++
@@ -32,7 +34,7 @@ object Native {
 //        left: Int, top: Int, right: Int, bottom: Int
 //    ): LongArray
 
-    external fun detectLandmark(pixels: IntArray, width: Int, height: Int): Int
+    external fun detectLandmarkARGB(argb: IntArray, width: Int, height: Int): Int
 
-    external fun imageToGrayScale(pixels: IntArray) : IntArray
+
 }
