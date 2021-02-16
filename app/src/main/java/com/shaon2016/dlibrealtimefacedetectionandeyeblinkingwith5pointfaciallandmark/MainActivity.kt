@@ -16,9 +16,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Example of a call to a native method
-//        findViewById<TextView>(R.id.sample_text).text = stringFromJNI()
-//
         val modelPath =
             "${getExternalFilesDirs(Environment.DIRECTORY_DOCUMENTS).first()}/shape_predictor_68_face_landmarks.dat"
         if (!File(modelPath).exists())
@@ -31,7 +28,6 @@ class MainActivity : AppCompatActivity() {
 
         val b = BitmapFactory.decodeResource(resources, R.drawable.man)
 
-
         val bmp = b.copy(Bitmap.Config.ARGB_8888, true)
 
         val width = bmp.width
@@ -40,15 +36,10 @@ class MainActivity : AppCompatActivity() {
         val pixels = IntArray(width * height)
         b.getPixels(pixels, 0, width, 0, 0, width, height)
 
-        val updatedPixels = Native.imageToGrayScale(pixels)
-
-        bmp.setPixels(updatedPixels, 0, width, 0, 0, width, height)
-
         findViewById<ImageView>(R.id.iv).setImageBitmap(b)
-        findViewById<ImageView>(R.id.iv2).setImageBitmap(bmp)
 
         // Detect landmark
-        Native.detectLandmark(pixels, width, height)
+        Log.d("DATATAG", Native.detectLandmark(pixels, width, height).toString())
 
     }
 

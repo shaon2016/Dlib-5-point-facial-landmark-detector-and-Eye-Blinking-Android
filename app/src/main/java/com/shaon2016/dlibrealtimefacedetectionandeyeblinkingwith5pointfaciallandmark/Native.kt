@@ -34,5 +34,4 @@ object Native {
 
     external fun detectLandmark(pixels: IntArray, width: Int, height: Int): Int
 
-    external fun imageToGrayScale(pixels: IntArray) : IntArray
 }
