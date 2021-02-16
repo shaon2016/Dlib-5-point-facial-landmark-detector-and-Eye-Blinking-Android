@@ -1,0 +1,9 @@
+/Users/hello/Desktop/dlib-19.21/dlib/build/x86_64/CMakeFiles/install/local.dir
+/Users/hello/Desktop/dlib-19.21/dlib/build/x86_64/CMakeFiles/install/strip.dir
+/Users/hello/Desktop/dlib-19.21/dlib/build/x86_64/CMakeFiles/install.dir
+/Users/hello/Desktop/dlib-19.21/dlib/build/x86_64/CMakeFiles/list_install_components.dir
+/Users/hello/Desktop/dlib-19.21/dlib/build/x86_64/CMakeFiles/package.dir
+/Users/hello/Desktop/dlib-19.21/dlib/build/x86_64/CMakeFiles/package_source.dir
+/Users/hello/Desktop/dlib-19.21/dlib/build/x86_64/CMakeFiles/rebuild_cache.dir
+/Users/hello/Desktop/dlib-19.21/dlib/build/x86_64/CMakeFiles/edit_cache.dir
+/Users/hello/Desktop/dlib-19.21/dlib/build/x86_64/CMakeFiles/dlib.dir

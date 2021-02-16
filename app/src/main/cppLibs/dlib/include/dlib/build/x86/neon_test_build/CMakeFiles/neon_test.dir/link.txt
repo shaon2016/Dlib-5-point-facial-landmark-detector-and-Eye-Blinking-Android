@@ -1,0 +1,2 @@
+/users/hello/library/Android/sdk/ndk/21.1.6352462/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android-ar qc libneon_test.a  CMakeFiles/neon_test.dir/neon_test.cpp.o
+/users/hello/library/Android/sdk/ndk/21.1.6352462/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android-ranlib libneon_test.a

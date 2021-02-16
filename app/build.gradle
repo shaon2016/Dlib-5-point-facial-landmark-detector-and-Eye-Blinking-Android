@@ -1,0 +1,92 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+}
+
+android {
+    compileSdkVersion 30
+    buildToolsVersion "30.0.3"
+
+    defaultConfig {
+        applicationId "com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark"
+        minSdkVersion 21
+        targetSdkVersion 30
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // specify the platform you want to build for
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
+
+        externalNativeBuild {
+            // set c++ flags, specify the STL: c++_shared, gnustl...
+            cmake {
+                cFlags   "-O3"
+//                cppFlags "-std=c++11 -frtti -fexceptions"
+                cppFlags "-std=c++11"
+                arguments "-DANDROID_PLATFORM=android-21",  // remember: same min sdk as before
+                        "-DANDROID_TOOLCHAIN=clang",
+                        "-DANDROID_STL=c++_shared",
+                        "-DANDROID_CPP_FEATURES=rtti exceptions"
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.10.2"
+        }
+    }
+    sourceSets {
+        // tell to CMake where to find the native pre-build libraries:
+        main {
+            jniLibs.srcDirs = [
+                    "src/main/cppLibs/dlib/lib",   // remove if you only need opencv
+                    "src/main/cppLibs/opencv"  // remove if you only need dlib
+            ]
+        }
+    }
+    packagingOptions {
+        pickFirst "**/libc++_shared.so"
+
+        pickFirst 'lib/armeabi-v7a/libopencv_java4.so'
+        pickFirst 'lib/arm64-v8a/libopencv_java4.so'
+        pickFirst 'lib/x86/libopencv_java4.so'
+        pickFirst 'lib/x86_64/libopencv_java4.so'
+
+        pickFirst 'lib/armeabi-v7a/libdlib.so'
+        pickFirst 'lib/arm64-v8a/libdlib.so'
+        pickFirst 'lib/x86/libdlib.so'
+        pickFirst 'lib/x86_64/libdlib.so'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+dependencies {
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation 'androidx.core:core-ktx:1.3.2'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'com.google.android.material:material:1.3.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    testImplementation 'junit:junit:4.+'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+}
