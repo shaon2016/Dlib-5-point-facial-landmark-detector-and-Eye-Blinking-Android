@@ -1,22 +1,46 @@
 package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.provider.Settings
 import android.util.Log
 import android.widget.ImageView
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.util.FileUtil
 import java.io.ByteArrayOutputStream
 import java.io.File
+
+/** The request code for requesting [Manifest.permission.READ_EXTERNAL_STORAGE] permission. */
+private const val PERMISSIONS_REQUEST = 0x1045
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+//       loadDlibModel()
+
+        if (havePermission()) {
+            loadFragment(CameraXFragment.newInstance())
+        } else {
+            requestPermissions()
+        }
+    }
+
+    private fun loadDlibModel() {
         val modelPath =
             "${getExternalFilesDirs(Environment.DIRECTORY_DOCUMENTS).first()}/shape_predictor_68_face_landmarks.dat"
         if (!File(modelPath).exists())
@@ -26,34 +50,105 @@ class MainActivity : AppCompatActivity() {
             )
 
         Native.loadModel(modelPath)
+    }
 
-        val b = BitmapFactory.decodeResource(resources, R.drawable.man)
-
-        val bmp = b.copy(Bitmap.Config.ARGB_8888, true)
-
-        val width = bmp.width
-        val height = bmp.height
-
-        val pixels = IntArray(width * height)
-        b.getPixels(pixels, 0, width, 0, 0, width, height)
-
-        findViewById<ImageView>(R.id.iv).setImageBitmap(b)
-
-
-        // Detect landmark
-        val landmarks = Native.detectLandmark(pixels, width, height)
-
-        landmarks?.let {
-            Log.d("DATATAG", landmarks[0].toString())
-
-            val iv2 = findViewById<ImageWithLandmark>(R.id.iv2)
-            iv2.setImageBitmap(bmp)
-            iv2.setLendmarks(landmarks)
-
-            iv2.invalidate()
+    // Permission Sections
+    private fun havePermission() =
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED) && (ContextCompat.checkSelfPermission(
+                this, Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED) && (ContextCompat.checkSelfPermission(
+                this, Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED)
+        } else {
+            (ContextCompat.checkSelfPermission(
+                this, Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED)
         }
 
+    /**
+     * Convenience method to request [Manifest.permission.READ_EXTERNAL_STORAGE] permission.
+     */
+    private fun requestPermissions() {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            if (!havePermission()) {
+                val permissions = arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.CAMERA
+                )
+                ActivityCompat.requestPermissions(this, permissions, PERMISSIONS_REQUEST)
+            }
+        } else {
+            if (!havePermission()) {
+                val permissions = Manifest.permission.CAMERA
 
+                ActivityCompat.requestPermissions(this, arrayOf(permissions), PERMISSIONS_REQUEST)
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            PERMISSIONS_REQUEST -> {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.isNotEmpty() && havePermission()) {
+                    loadFragment(CameraXFragment.newInstance())
+                } else {
+                    // If we weren't granted the permission, check to see if we should show
+                    // rationale for the permission.
+                    showDialogToAcceptPermissions()
+                }
+                return
+            }
+        }
+
+    }
+    private fun showDialogToAcceptPermissions() {
+        showPermissionRationalDialog("You need to allow access to view and capture image")
+    }
+
+    private fun showPermissionRationalDialog(msg: String) {
+        AlertDialog.Builder(this)
+            .setMessage(msg)
+            .setPositiveButton(
+                "OK"
+            ) { dialog, which ->
+                goToSettings()
+            }
+            .setNegativeButton("Cancel") { dialog, which ->
+                onBackPressed()
+            }
+            .create()
+            .show()
+    }
+
+    private val startSettingsForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (havePermission()) {
+            loadFragment(CameraXFragment.newInstance())
+        } else finish()
+    }
+
+    private fun loadFragment(frag:Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.container, frag)
+            .commit()
+    }
+
+    private fun goToSettings() {
+        val intent =
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
+        startSettingsForResult.launch(intent)
     }
 
     companion object {

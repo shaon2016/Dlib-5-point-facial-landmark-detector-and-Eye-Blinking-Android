@@ -2,9 +2,12 @@ package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallan
 
 import android.R.attr.path
 import android.content.Context
+import android.os.Environment
 import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 object FileUtil {
@@ -25,5 +28,32 @@ object FileUtil {
         }
     }
 
+    private val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
+    /**
+     * It creates a image file with png extension
+     * */
+    fun getImageOutputDirectory(context: Context): File {
 
+        val mediaDir =
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                context.getExternalFilesDirs(Environment.DIRECTORY_DCIM).firstOrNull()?.let {
+                    File(it, "images").apply { mkdirs() }
+                }
+            } else {
+                null
+            }
+        return if (mediaDir != null && mediaDir.exists())
+            File(
+                mediaDir,
+                SimpleDateFormat(
+                    FILENAME_FORMAT, Locale.US
+                ).format(System.currentTimeMillis()) + ".png"
+            )
+        else File(
+            context.filesDir,
+            SimpleDateFormat(
+                FILENAME_FORMAT, Locale.US
+            ).format(System.currentTimeMillis()) + ".png"
+        )
+    }
 }
