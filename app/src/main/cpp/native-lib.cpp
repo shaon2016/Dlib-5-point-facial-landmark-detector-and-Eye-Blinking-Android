@@ -72,7 +72,7 @@ JNI_METHOD(detectLandmarkARGB)(
     array2d<unsigned char> img;
 
     jint *p = env->GetIntArrayElements(pixels, 0);
-    cv::Mat mFrame = cv::Mat(height + height / 2, width, CV_8UC4,  p).clone();
+    cv::Mat mFrame = cv::Mat(height, width, CV_8UC4,  p).clone();
     // the next only is a extra example to gray convertion:
     cv::Mat mOut;
     // to grayscale
@@ -81,8 +81,8 @@ JNI_METHOD(detectLandmarkARGB)(
     // convert mat image to dlib image
     dlib::assign_image(img, dlib::cv_image<unsigned char>(mOut));
 
-    // Increasing the size
-    pyramid_up(img);
+
+   // pyramid_up(img);
     // end of working with image
 
 //     We need a face detector.  We will use this to get bounding boxes for
@@ -90,17 +90,11 @@ JNI_METHOD(detectLandmarkARGB)(
     frontal_face_detector detector = get_frontal_face_detector();
     // Now tell the face detector to give us a list of bounding boxes
     // around all the faces in the image.
-    try {
-        std::vector<rectangle> dets = detector(img);
-        LOGD("JNI: Number of faces detected -> %s", dets.size());
-    } catch (exception &e) {
-        LOGD("JNI: Failed to detect -> %s", e.what());
-    }
-
+    std::vector<rectangle> dets = detector(img);
 
     env->ReleaseIntArrayElements(pixels, p, 0);
 
-    return 0;
+    return dets.size();
 }
 
 

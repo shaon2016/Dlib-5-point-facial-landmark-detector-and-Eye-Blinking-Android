@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
 
         // Detect landmark
 
-        Native.detectLandmarkARGB(pixels, width, height)
+        Log.d("DATATAG", Native.detectLandmarkARGB(pixels, width, height).toString())
     }
 
     companion object {
