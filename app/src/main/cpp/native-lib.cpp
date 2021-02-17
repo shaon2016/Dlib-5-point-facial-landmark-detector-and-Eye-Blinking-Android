@@ -56,37 +56,55 @@ JNI_METHOD(loadModel)(JNIEnv *env, jobject, jstring detectorPath) {
     }
 }
 
-extern "C" JNIEXPORT jint JNICALL
+extern "C" JNIEXPORT jlongArray JNICALL
 JNI_METHOD(detectLandmark)(
         JNIEnv *env, jobject ob, jintArray pixels, jint width,
         jint height) {
 
     array2d<rgb_pixel> img;
 
-    try {
-        jbyteArray nv21ByteArray = convertBitmapPixelToNV21(env, pixels, width, height);
-
-        convertNV21ToArray2d(env, img, nv21ByteArray, width, height);
-
-        LOGD("JNI: Conversion successful image }");
-    } catch (exception &e) {
-        LOGD("JNI: failed to convert image -> %s", e.what());
-    }
+    jbyteArray nv21ByteArray = convertBitmapPixelToNV21(env, pixels, width, height);
+    convertNV21ToArray2d(env, img, nv21ByteArray, width, height);
 
     pyramid_up(img);
 
-    // We need a face detector.  We will use this to get bounding boxes for
-    // each face in an image.
-    frontal_face_detector detector = get_frontal_face_detector();
-    // Now tell the face detector to give us a list of bounding boxes
-    // around all the faces in the image.
-    std::vector<rectangle> dets = detector(img);
+//    frontal_face_detector  detector = frontal_face_detector();
+//
+//    _mutex.lock();
+//    std::vector<rectangle> dets = detector(img);
+//    _mutex.unlock();
+//
+//    if(dets.size() < 1) {
+//        return 0;
+//    }
+//
+//    _mutex.lock();
+//    // here detector used for rectange (left, right , top, bottom data)
+//    dlib::full_object_detection points = shapePredictor(img, dets[0]);
+//    _mutex.unlock();
 
-//    dlib::rectangle region(0, 0, 300, 300);
-//    dlib::full_object_detection points = shapePredictor(img, region);
-//    LOGD("JNI: Number of points detected -> %s", points.num_parts());
+    dlib::rectangle region(0, 0, width, height);
+    dlib::full_object_detection points = shapePredictor(img, region);
 
-    return dets.size();
+    // result
+    auto num_points = points.num_parts();
+    jsize len = (jsize) (num_points * sizeof(short)); // num_points * 2
+
+    jlong buffer[len];
+    jlongArray result = env->NewLongArray(len);
+
+    // copy points in the buffer
+    auto k = 0;
+    for (unsigned long i = 0l; i < num_points; ++i) {
+        dlib::point p = points.part(i);
+        buffer[k++] = p.x();
+        buffer[k++] = p.y();
+    }
+
+    // set the content of buffer into result array
+    env->SetLongArrayRegion(result, 0, len, buffer);
+
+    return result;
 }
 
 void convertNV21ToArray2d(JNIEnv *env, dlib::array2d<dlib::rgb_pixel> &out,

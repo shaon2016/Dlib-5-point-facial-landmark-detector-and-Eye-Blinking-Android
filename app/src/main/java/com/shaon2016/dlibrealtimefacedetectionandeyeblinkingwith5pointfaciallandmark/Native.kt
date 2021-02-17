@@ -32,6 +32,6 @@ object Native {
 //        left: Int, top: Int, right: Int, bottom: Int
 //    ): LongArray
 
-    external fun detectLandmark(pixels: IntArray, width: Int, height: Int): Int
+    external fun detectLandmark(pixels: IntArray, width: Int, height: Int): LongArray
 
 }

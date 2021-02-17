@@ -2,6 +2,7 @@ package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallan
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
@@ -38,8 +39,20 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<ImageView>(R.id.iv).setImageBitmap(b)
 
+
         // Detect landmark
-        Log.d("DATATAG", Native.detectLandmark(pixels, width, height).toString())
+        val landmarks = Native.detectLandmark(pixels, width, height)
+
+        landmarks?.let {
+            Log.d("DATATAG", landmarks[0].toString())
+
+            val iv2 = findViewById<ImageWithLandmark>(R.id.iv2)
+            iv2.setImageBitmap(bmp)
+            iv2.setLendmarks(landmarks)
+
+            iv2.invalidate()
+        }
+
 
     }
 
