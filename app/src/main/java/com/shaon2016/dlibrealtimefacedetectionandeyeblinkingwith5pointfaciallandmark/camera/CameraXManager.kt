@@ -3,19 +3,15 @@ package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallan
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.net.Uri
-import android.util.AttributeSet
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.OrientationEventListener
 import android.view.Surface
-import android.view.SurfaceHolder
-import android.view.SurfaceView
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.util.FileUtil
@@ -23,24 +19,21 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 
-class CameraXPreview(context: Context, attrs: AttributeSet) : SurfaceView(context, attrs),
-    SurfaceHolder.Callback, LifecycleOwner {
-    private lateinit var lifecycleRegistry: LifecycleRegistry
+class CameraXManager(
+    private val context: Context,
+    private val viewFinder: PreviewView
+) : LifecycleOwner {
 
-    private val TAG = "CameraXPreview"
+    private val TAG = "CameraXManager"
+    private var lifecycleRegistry: LifecycleRegistry = LifecycleRegistry(this)
 
-    var previewWidth = 0
-    var previewHeight = 0
-    var displayRotation = 0
-
-    private var captureImageUri: Uri? = null
 
     // CameraX
+    private var captureImageUri: Uri? = null
     private var imageCapture: ImageCapture? = null
     private var lensFacing: Int = CameraSelector.LENS_FACING_FRONT
-    private lateinit var cameraExecutor: ExecutorService
+    private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private lateinit var cameraProvider: ProcessCameraProvider
-    private lateinit var viewFinder: PreviewView
     private var displayId: Int = -1
     private var camera: Camera? = null
 
@@ -59,30 +52,22 @@ class CameraXPreview(context: Context, attrs: AttributeSet) : SurfaceView(contex
 
 
         override fun onDisplayChanged(displayId: Int) {
-            if (displayId == this@CameraXPreview.displayId) {
-                Log.d(TAG, "Rotation changed: ${display.rotation}")
-                imageCapture?.targetRotation = display.rotation
+            if (displayId == this@CameraXManager.displayId) {
+                Log.d(TAG, "Rotation changed: ${viewFinder.display.rotation}")
+                imageCapture?.targetRotation = viewFinder.display.rotation
             }
         }
     }
 
-    override fun surfaceCreated(holder: SurfaceHolder) {
-        lifecycleRegistry = LifecycleRegistry(this)
-        lifecycleRegistry.currentState = Lifecycle.State.CREATED
-
-        cameraExecutor = Executors.newSingleThreadExecutor()
+    init {
+        lifecycleRegistry.currentState = Lifecycle.State.STARTED
 
         // Every time the orientation of device changes, update rotation for use cases
         displayManager.registerDisplayListener(displayListener, null)
 
-        setupCamera()
     }
 
-    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-
-    }
-
-    override fun surfaceDestroyed(holder: SurfaceHolder) {
+    fun destroyed() {
         orientationEventListener?.disable()
         orientationEventListener = null
 
@@ -92,7 +77,7 @@ class CameraXPreview(context: Context, attrs: AttributeSet) : SurfaceView(contex
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
     }
 
-    private fun setupCamera() {
+     fun setupCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
         cameraProviderFuture.addListener({
@@ -116,7 +101,7 @@ class CameraXPreview(context: Context, attrs: AttributeSet) : SurfaceView(contex
 
     private fun bindCameraUseCases() {
         // Get screen metrics used to setup camera for full screen resolution
-        val metrics = DisplayMetrics().also { display.getRealMetrics(it) }
+        val metrics = DisplayMetrics().also { viewFinder.display.getRealMetrics(it) }
 
         // Preview
         val preview = configurePreviewUseCase()
@@ -157,18 +142,16 @@ class CameraXPreview(context: Context, attrs: AttributeSet) : SurfaceView(contex
     }
 
     private fun configureImageCapture() = ImageCapture.Builder()
-        .setTargetRotation(display.rotation)
+        .setTargetRotation(viewFinder.display.rotation)
         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
         .build()
 
     private fun configurePreviewUseCase() = Preview.Builder()
-        .setTargetRotation(display.rotation)
+        .setTargetRotation(viewFinder.display.rotation)
         .build()
-
-
-//        .also {
-//            it.setSurfaceProvider(viewFinder.surfaceProvider)
-//        }
+        .also {
+            it.setSurfaceProvider(viewFinder.surfaceProvider)
+        }
 
     /** Returns true if the device has an available front camera. False otherwise */
     private fun hasFrontCamera() = cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)
@@ -210,12 +193,6 @@ class CameraXPreview(context: Context, attrs: AttributeSet) : SurfaceView(contex
                     }
                 }
             })
-    }
-
-    companion object {
-        const val portrait = 90
-        const val landleft = 0
-        const val landright = 180
     }
 
     override fun getLifecycle() = lifecycleRegistry
