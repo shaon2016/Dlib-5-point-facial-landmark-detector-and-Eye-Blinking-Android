@@ -1,26 +1,37 @@
-package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark
+package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.camera
 
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.net.Uri
-import android.os.Bundle
+import android.util.AttributeSet
 import android.util.DisplayMetrics
 import android.util.Log
-import android.view.*
-import android.widget.RelativeLayout
+import android.view.OrientationEventListener
+import android.view.Surface
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.util.FileUtil
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 
-class CameraXFragment : Fragment() {
-    private val TAG = "CameraXFragment"
-    private lateinit var container: RelativeLayout
+class CameraXPreview(context: Context, attrs: AttributeSet) : SurfaceView(context, attrs),
+    SurfaceHolder.Callback, LifecycleOwner {
+    private lateinit var lifecycleRegistry: LifecycleRegistry
+
+    private val TAG = "CameraXPreview"
+
+    var previewWidth = 0
+    var previewHeight = 0
+    var displayRotation = 0
 
     private var captureImageUri: Uri? = null
 
@@ -34,7 +45,7 @@ class CameraXFragment : Fragment() {
     private var camera: Camera? = null
 
     private val displayManager by lazy {
-        requireContext().getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
     }
 
     /**
@@ -45,80 +56,44 @@ class CameraXFragment : Fragment() {
     private val displayListener = object : DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) = Unit
         override fun onDisplayRemoved(displayId: Int) = Unit
-        override fun onDisplayChanged(displayId: Int) = view?.let { view ->
-            if (displayId == this@CameraXFragment.displayId) {
-                Log.d(TAG, "Rotation changed: ${view.display.rotation}")
-                imageCapture?.targetRotation = view.display.rotation
+
+
+        override fun onDisplayChanged(displayId: Int) {
+            if (displayId == this@CameraXPreview.displayId) {
+                Log.d(TAG, "Rotation changed: ${display.rotation}")
+                imageCapture?.targetRotation = display.rotation
             }
-        } ?: Unit
-    }
-
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_camera_x, container, false)
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        container = view as RelativeLayout
-        viewFinder = container.findViewById(R.id.viewFinder)
-
-        viewFinder.post {
-            setupCamera()
         }
+    }
+
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        lifecycleRegistry = LifecycleRegistry(this)
+        lifecycleRegistry.currentState = Lifecycle.State.CREATED
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         // Every time the orientation of device changes, update rotation for use cases
         displayManager.registerDisplayListener(displayListener, null)
 
+        setupCamera()
     }
 
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
 
-    private fun takePhoto() {
-        // Get a stable reference of the modifiable image capture use case
-        val imageCapture = imageCapture ?: return
+    }
 
-        // Create time-stamped output file to hold the image
-        val photoFile = FileUtil.getImageOutputDirectory(requireContext())
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        orientationEventListener?.disable()
+        orientationEventListener = null
 
-        // Setup image capture metadata
-        val metadata = ImageCapture.Metadata().apply {
+        cameraExecutor.shutdown()
+        displayManager.unregisterDisplayListener(displayListener)
 
-            // Mirror image when using the front camera
-            isReversedHorizontal = lensFacing == CameraSelector.LENS_FACING_FRONT
-        }
-        // Create output options object which contains file + metadata
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile)
-            .setMetadata(metadata)
-            .build()
-
-        // Set up image capture listener, which is triggered after photo has
-        // been taken
-        imageCapture.takePicture(
-            outputOptions,
-            ContextCompat.getMainExecutor(requireContext()),
-            object : ImageCapture.OnImageSavedCallback {
-                override fun onError(exc: ImageCaptureException) {
-                    Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
-                }
-
-                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-
-                    captureImageUri = Uri.fromFile(photoFile)
-
-                    captureImageUri?.let {
-
-                    }
-                }
-            })
+        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
     }
 
     private fun setupCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
         cameraProviderFuture.addListener({
             // Used to bind the lifecycle of cameras to the lifecycle owner
@@ -132,7 +107,7 @@ class CameraXFragment : Fragment() {
 
             // Build and bind the camera use cases
             bindCameraUseCases()
-        }, ContextCompat.getMainExecutor(requireContext()))
+        }, ContextCompat.getMainExecutor(context))
 
 
     }
@@ -141,14 +116,14 @@ class CameraXFragment : Fragment() {
 
     private fun bindCameraUseCases() {
         // Get screen metrics used to setup camera for full screen resolution
-        val metrics = DisplayMetrics().also { viewFinder.display.getRealMetrics(it) }
+        val metrics = DisplayMetrics().also { display.getRealMetrics(it) }
 
         // Preview
         val preview = configurePreviewUseCase()
 
         imageCapture = configureImageCapture()
 
-        orientationEventListener = object : OrientationEventListener(requireContext()) {
+        orientationEventListener = object : OrientationEventListener(context) {
             override fun onOrientationChanged(orientation: Int) {
                 // Monitors orientation values to determine the target rotation value
                 val rotation = when (orientation) {
@@ -182,37 +157,67 @@ class CameraXFragment : Fragment() {
     }
 
     private fun configureImageCapture() = ImageCapture.Builder()
-        .setTargetRotation(viewFinder.display.rotation)
+        .setTargetRotation(display.rotation)
         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
         .build()
 
     private fun configurePreviewUseCase() = Preview.Builder()
-        .setTargetRotation(viewFinder.display.rotation)
-        .build().also {
-            it.setSurfaceProvider(viewFinder.surfaceProvider)
-        }
+        .setTargetRotation(display.rotation)
+        .build()
+
+
+//        .also {
+//            it.setSurfaceProvider(viewFinder.surfaceProvider)
+//        }
 
     /** Returns true if the device has an available front camera. False otherwise */
     private fun hasFrontCamera() = cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)
 
-    override fun onDestroy() {
-        super.onDestroy()
-        cameraExecutor.shutdown()
-        displayManager.unregisterDisplayListener(displayListener)
+    private fun takePhoto() {
+        // Get a stable reference of the modifiable image capture use case
+        val imageCapture = imageCapture ?: return
 
-    }
+        // Create time-stamped output file to hold the image
+        val photoFile = FileUtil.getImageOutputDirectory(context)
 
-    override fun onStop() {
-        super.onStop()
+        // Setup image capture metadata
+        val metadata = ImageCapture.Metadata().apply {
 
-        orientationEventListener?.disable()
-        orientationEventListener = null
+            // Mirror image when using the front camera
+            isReversedHorizontal = lensFacing == CameraSelector.LENS_FACING_FRONT
+        }
+        // Create output options object which contains file + metadata
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile)
+            .setMetadata(metadata)
+            .build()
+
+        // Set up image capture listener, which is triggered after photo has
+        // been taken
+        imageCapture.takePicture(
+            outputOptions,
+            ContextCompat.getMainExecutor(context),
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onError(exc: ImageCaptureException) {
+                    Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
+                }
+
+                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+
+                    captureImageUri = Uri.fromFile(photoFile)
+
+                    captureImageUri?.let {
+
+                    }
+                }
+            })
     }
 
     companion object {
-
-        @JvmStatic
-        fun newInstance() = CameraXFragment()
-
+        const val portrait = 90
+        const val landleft = 0
+        const val landright = 180
     }
+
+    override fun getLifecycle() = lifecycleRegistry
+
 }
