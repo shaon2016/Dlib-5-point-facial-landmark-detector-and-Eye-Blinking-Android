@@ -33,6 +33,12 @@ class CameraXFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        cm.onResume()
+    }
+
 
     override fun onDestroy() {
         super.onDestroy()

@@ -1,22 +1,33 @@
 package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.camera
 
 import android.content.Context
+import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.CaptureResult
+import android.hardware.camera2.TotalCaptureResult
 import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.util.DisplayMetrics
 import android.util.Log
+import android.util.Size
 import android.view.OrientationEventListener
 import android.view.Surface
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.*
+import androidx.camera.core.impl.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.Observer
 import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.util.FileUtil
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 
 class CameraXManager(
@@ -27,7 +38,6 @@ class CameraXManager(
     private val TAG = "CameraXManager"
     private var lifecycleRegistry: LifecycleRegistry = LifecycleRegistry(this)
 
-
     // CameraX
     private var captureImageUri: Uri? = null
     private var imageCapture: ImageCapture? = null
@@ -35,6 +45,7 @@ class CameraXManager(
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private lateinit var cameraProvider: ProcessCameraProvider
     private var displayId: Int = -1
+    private var imageAnalyzer: ImageAnalysis? = null
     private var camera: Camera? = null
 
     private val displayManager by lazy {
@@ -55,7 +66,27 @@ class CameraXManager(
             if (displayId == this@CameraXManager.displayId) {
                 Log.d(TAG, "Rotation changed: ${viewFinder.display.rotation}")
                 imageCapture?.targetRotation = viewFinder.display.rotation
+                imageAnalyzer?.targetRotation = viewFinder.display.rotation
             }
+        }
+    }
+
+    private val mCaptureCallback = object : CameraCaptureSession.CaptureCallback() {
+        override fun onCaptureProgressed(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            partialResult: CaptureResult
+        ) {
+
+
+        }
+
+        override fun onCaptureCompleted(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            result: TotalCaptureResult
+        ) {
+
         }
     }
 
@@ -65,19 +96,11 @@ class CameraXManager(
         // Every time the orientation of device changes, update rotation for use cases
         displayManager.registerDisplayListener(displayListener, null)
 
+
     }
 
-    fun destroyed() {
-        orientationEventListener?.disable()
-        orientationEventListener = null
 
-        cameraExecutor.shutdown()
-        displayManager.unregisterDisplayListener(displayListener)
-
-        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
-    }
-
-     fun setupCamera() {
+    fun setupCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
         cameraProviderFuture.addListener({
@@ -102,11 +125,15 @@ class CameraXManager(
     private fun bindCameraUseCases() {
         // Get screen metrics used to setup camera for full screen resolution
         val metrics = DisplayMetrics().also { viewFinder.display.getRealMetrics(it) }
+        val screenAspectRatio = aspectRatio(metrics.widthPixels, metrics.heightPixels)
 
         // Preview
-        val preview = configurePreviewUseCase()
+        val preview = configurePreviewUseCase(screenAspectRatio)
 
-        imageCapture = configureImageCapture()
+        imageCapture = configureImageCapture(screenAspectRatio)
+
+        imageAnalyzer = configureImageAnalyzer(screenAspectRatio)
+
 
         orientationEventListener = object : OrientationEventListener(context) {
             override fun onOrientationChanged(orientation: Int) {
@@ -139,14 +166,26 @@ class CameraXManager(
         } catch (exc: Exception) {
             Log.e(TAG, "Use case binding failed", exc)
         }
+
+
+
     }
 
-    private fun configureImageCapture() = ImageCapture.Builder()
+    private fun configureImageAnalyzer(screenAspectRatio: Int): ImageAnalysis {
+        return ImageAnalysis.Builder()
+            .setTargetAspectRatio(screenAspectRatio)
+            .setTargetRotation(viewFinder.display.rotation)
+            .build()
+    }
+
+    private fun configureImageCapture(screenAspectRatio: Int) = ImageCapture.Builder()
+        .setTargetAspectRatio(screenAspectRatio)
         .setTargetRotation(viewFinder.display.rotation)
         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
         .build()
 
-    private fun configurePreviewUseCase() = Preview.Builder()
+    private fun configurePreviewUseCase(screenAspectRatio: Int) = Preview.Builder()
+        .setTargetAspectRatio(screenAspectRatio)
         .setTargetRotation(viewFinder.display.rotation)
         .build()
         .also {
@@ -195,6 +234,34 @@ class CameraXManager(
             })
     }
 
+    private fun aspectRatio(width: Int, height: Int): Int {
+        val previewRatio = max(width, height).toDouble() / min(width, height)
+        if (abs(previewRatio - RATIO_4_3_VALUE) <= abs(previewRatio - RATIO_16_9_VALUE)) {
+            return AspectRatio.RATIO_4_3
+        }
+        return AspectRatio.RATIO_16_9
+    }
+
     override fun getLifecycle() = lifecycleRegistry
 
+    fun destroyed() {
+        orientationEventListener?.disable()
+        orientationEventListener = null
+
+        cameraExecutor.shutdown()
+        displayManager.unregisterDisplayListener(displayListener)
+
+        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
+    }
+
+    fun onResume() {
+        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+        setupCamera()
+    }
+
+
+    companion object {
+        private const val RATIO_4_3_VALUE = 4.0 / 3.0
+        private const val RATIO_16_9_VALUE = 16.0 / 9.0
+    }
 }
