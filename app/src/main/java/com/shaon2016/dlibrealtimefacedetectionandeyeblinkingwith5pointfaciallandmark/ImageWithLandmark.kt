@@ -2,10 +2,12 @@ package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallan
 
 import android.content.Context
 import android.graphics.*
+import android.media.FaceDetector
 import android.util.AttributeSet
 import android.util.Log
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
+
 
 class ImageWithLandmark(context: Context, attrs: AttributeSet) :
     AppCompatImageView(context, attrs) {
@@ -13,10 +15,12 @@ class ImageWithLandmark(context: Context, attrs: AttributeSet) :
     private val WIDTH = 2f
     private var mStrokeWidth = 2
     private var mStrokePaint: Paint
-    private val mRenderMatrix = Matrix()
     private val rPaint = Paint()
 
+    private val myPaint = Paint()
+
     private var landmarks: LongArray? = null
+    private val maxFace = 1
 
     init {
         val density = getContext()
@@ -31,7 +35,12 @@ class ImageWithLandmark(context: Context, attrs: AttributeSet) :
         rPaint.style = Paint.Style.STROKE
         rPaint.strokeWidth = 5f
 
+        myPaint.color = Color.GREEN
+        myPaint.style = Paint.Style.STROKE
+        myPaint.strokeWidth = 2f
+
     }
+
 
     override fun onDrawForeground(canvas: Canvas?) {
         super.onDrawForeground(canvas)
@@ -52,6 +61,7 @@ class ImageWithLandmark(context: Context, attrs: AttributeSet) :
     fun setLendmarks(landmarks: LongArray) {
         this.landmarks = landmarks
     }
+
 
 
 }
