@@ -78,7 +78,6 @@ class CameraXManager(
             partialResult: CaptureResult
         ) {
 
-
         }
 
         override fun onCaptureCompleted(
@@ -95,7 +94,6 @@ class CameraXManager(
 
         // Every time the orientation of device changes, update rotation for use cases
         displayManager.registerDisplayListener(displayListener, null)
-
 
     }
 
@@ -117,7 +115,6 @@ class CameraXManager(
             bindCameraUseCases()
         }, ContextCompat.getMainExecutor(context))
 
-
     }
 
     private var orientationEventListener: OrientationEventListener? = null
@@ -133,7 +130,6 @@ class CameraXManager(
         imageCapture = configureImageCapture(screenAspectRatio)
 
         imageAnalyzer = configureImageAnalyzer(screenAspectRatio)
-
 
         orientationEventListener = object : OrientationEventListener(context) {
             override fun onOrientationChanged(orientation: Int) {
@@ -163,12 +159,14 @@ class CameraXManager(
                 this, cameraSelector, preview, imageCapture
             )
 
+            analyzeImage()
         } catch (exc: Exception) {
             Log.e(TAG, "Use case binding failed", exc)
         }
 
+    }
 
-
+    private fun analyzeImage() {
     }
 
     private fun configureImageAnalyzer(screenAspectRatio: Int): ImageAnalysis {
@@ -185,11 +183,20 @@ class CameraXManager(
         .build()
 
     private fun configurePreviewUseCase(screenAspectRatio: Int) = Preview.Builder()
+        .also {
+            /**
+             * Code for camera 2 capture callback
+             * */
+            val previewExtender = Camera2Interop.Extender(it)
+            previewExtender.setSessionCaptureCallback(mCaptureCallback)
+        }
         .setTargetAspectRatio(screenAspectRatio)
         .setTargetRotation(viewFinder.display.rotation)
         .build()
         .also {
             it.setSurfaceProvider(viewFinder.surfaceProvider)
+
+
         }
 
     /** Returns true if the device has an available front camera. False otherwise */
