@@ -10,9 +10,10 @@ import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfacialland
 
 class CameraXFragment : Fragment() {
     private lateinit var viewFinder: PreviewView
+    private lateinit var overlayView: OverlayView
 
     private val cm by lazy {
-        CameraXManager(requireContext(), viewFinder)
+        CameraXManager(requireContext(), viewFinder, overlayView)
     }
 
 
@@ -27,6 +28,7 @@ class CameraXFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val container = view as RelativeLayout
         viewFinder = container.findViewById(R.id.viewFinder)
+        overlayView = container.findViewById(R.id.overlay_view)
 
         viewFinder.post {
             cm.setupCamera()

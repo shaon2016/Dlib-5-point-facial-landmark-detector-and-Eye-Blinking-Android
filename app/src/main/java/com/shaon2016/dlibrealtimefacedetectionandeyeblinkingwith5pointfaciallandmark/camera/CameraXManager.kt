@@ -1,15 +1,15 @@
 package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.camera
 
+import android.app.Activity
 import android.content.Context
-import android.hardware.camera2.CameraCaptureSession
-import android.hardware.camera2.CaptureRequest
-import android.hardware.camera2.CaptureResult
-import android.hardware.camera2.TotalCaptureResult
+import android.graphics.Matrix
+import android.graphics.Rect
+import android.graphics.RectF
+import android.hardware.camera2.*
 import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.util.DisplayMetrics
 import android.util.Log
-import android.util.Size
 import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.camera2.interop.Camera2Interop
@@ -21,7 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.lifecycle.Observer
+import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.OverlayView
 import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.util.FileUtil
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -32,7 +32,8 @@ import kotlin.math.min
 
 class CameraXManager(
     private val context: Context,
-    private val viewFinder: PreviewView
+    private val viewFinder: PreviewView,
+    private val mOverlayView: OverlayView
 ) : LifecycleOwner {
 
     private val TAG = "CameraXManager"
@@ -71,13 +72,15 @@ class CameraXManager(
         }
     }
 
+    private val mFaceDetectionMatrix: Matrix? = null
+
     private val mCaptureCallback = object : CameraCaptureSession.CaptureCallback() {
         override fun onCaptureProgressed(
             session: CameraCaptureSession,
             request: CaptureRequest,
             partialResult: CaptureResult
         ) {
-
+            process(partialResult)
         }
 
         override fun onCaptureCompleted(
@@ -85,9 +88,46 @@ class CameraXManager(
             request: CaptureRequest,
             result: TotalCaptureResult
         ) {
+            process(result)
 
         }
+
+        private fun process(result: CaptureResult) {
+            val mode = result.get(CaptureResult.STATISTICS_FACE_DETECT_MODE)
+            val faces = result.get(CaptureResult.STATISTICS_FACES)
+
+            Log.i("Test", "faces : " + "${faces?.size ?: 0}" + " , mode : " + mode)
+
+            if (faces != null && mode != null) {
+                if (faces.isNotEmpty()) {
+                    for (i in faces.indices) {
+                        if (faces[i].score > 50) {
+                            Log.i("Test", "faces : " + faces.size + " , mode : " + mode)
+                            val left = faces[i].bounds.left
+                            val top = faces[i].bounds.top
+                            val right = faces[i].bounds.right
+                            val bottom = faces[i].bounds.bottom
+                            //float points[] = {(float)left, (float)top, (float)right, (float)bottom};
+                            val uRect = Rect(left, top, right, bottom)
+                            val rectF = RectF(uRect)
+                            mFaceDetectionMatrix?.mapRect(rectF)
+
+                            rectF.round(uRect)
+
+                            Log.i("Test", "Activity rect$i bounds: $uRect")
+                            (context as Activity).runOnUiThread(Runnable {
+                                mOverlayView.rect = uRect
+                                mOverlayView.requestLayout()
+                            })
+                            break
+                        }
+                    }
+                }
+            }
+        }
+
     }
+
 
     init {
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
@@ -188,7 +228,13 @@ class CameraXManager(
              * Code for camera 2 capture callback
              * */
             val previewExtender = Camera2Interop.Extender(it)
+
             previewExtender.setSessionCaptureCallback(mCaptureCallback)
+
+            previewExtender.setCaptureRequestOption(
+                CaptureRequest.STATISTICS_FACE_DETECT_MODE,
+                CameraMetadata.STATISTICS_FACE_DETECT_MODE_FULL
+            )
         }
         .setTargetAspectRatio(screenAspectRatio)
         .setTargetRotation(viewFinder.display.rotation)
