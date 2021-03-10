@@ -12,7 +12,9 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
 import android.util.Log
+import android.view.View
 import android.widget.ImageView
+import android.widget.ProgressBar
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -27,11 +29,15 @@ import java.io.File
 private const val PERMISSIONS_REQUEST = 0x1045
 
 class MainActivity : AppCompatActivity() {
+    private val pb = findViewById<ProgressBar>(R.id.pb)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-//       loadDlibModel()
+        pb.visibility = View.VISIBLE
+        loadDlibModel()
+        pb.visibility = View.GONE
 
         if (havePermission()) {
             loadFragment(CameraXFragment.newInstance())
@@ -114,6 +120,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
+
     private fun showDialogToAcceptPermissions() {
         showPermissionRationalDialog("You need to allow access to view and capture image")
     }
@@ -133,13 +140,14 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private val startSettingsForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (havePermission()) {
-            loadFragment(CameraXFragment.newInstance())
-        } else finish()
-    }
+    private val startSettingsForResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (havePermission()) {
+                loadFragment(CameraXFragment.newInstance())
+            } else finish()
+        }
 
-    private fun loadFragment(frag:Fragment) {
+    private fun loadFragment(frag: Fragment) {
         supportFragmentManager.beginTransaction()
             .replace(R.id.container, frag)
             .commit()

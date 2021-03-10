@@ -1,0 +1,3 @@
+package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark
+
+data class Recognition(val label:String, val confidence:Float)

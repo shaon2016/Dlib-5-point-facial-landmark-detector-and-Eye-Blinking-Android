@@ -6,10 +6,10 @@
     android:id="@+id/container"
     tools:context=".CameraXFragment">
 
-    <androidx.camera.view.PreviewView
-        android:id="@+id/viewFinder"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        <androidx.camera.view.PreviewView
+            android:id="@+id/viewFinder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
     <com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.OverlayView
         android:id="@+id/overlay_view"

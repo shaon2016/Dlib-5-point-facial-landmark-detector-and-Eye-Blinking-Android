@@ -2,6 +2,7 @@ package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallan
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.Rect
 import android.graphics.RectF
@@ -10,6 +11,7 @@ import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.util.DisplayMetrics
 import android.util.Log
+import android.util.Size
 import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.camera2.interop.Camera2Interop
@@ -21,14 +23,20 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.lifecycleScope
 import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.OverlayView
+import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.Recognition
 import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.util.FileUtil
+import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.util.Helper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
+typealias RecognitionListener = (recognition: List<Recognition>) -> Unit
 
 class CameraXManager(
     private val context: Context,
@@ -74,7 +82,7 @@ class CameraXManager(
 
     private val mFaceDetectionMatrix: Matrix? = null
 
-    private val mCaptureCallback = object : CameraCaptureSession.CaptureCallback() {
+    /*private val mCaptureCallback = object : CameraCaptureSession.CaptureCallback() {
         override fun onCaptureProgressed(
             session: CameraCaptureSession,
             request: CaptureRequest,
@@ -126,7 +134,7 @@ class CameraXManager(
             }
         }
 
-    }
+    }*/
 
 
     init {
@@ -211,9 +219,78 @@ class CameraXManager(
 
     private fun configureImageAnalyzer(screenAspectRatio: Int): ImageAnalysis {
         return ImageAnalysis.Builder()
-            .setTargetAspectRatio(screenAspectRatio)
+//            .setTargetAspectRatio(screenAspectRatio)
+            .setTargetResolution(Size(viewFinder.width, Helper.dpToPx(context, 300)))
             .setTargetRotation(viewFinder.display.rotation)
             .build()
+            .also {
+                it.setAnalyzer(cameraExecutor, ImageAnalyzer(context) {
+
+                })
+            }
+    }
+    inner class ImageAnalyzer(
+        private val ctx: Context,
+        val recognitionListener: RecognitionListener
+    ) :
+        ImageAnalysis.Analyzer {
+
+//        private val cascadeClassifier = CascadeClassifier(C.modelPath(ctx))
+//        private val faceDetections = MatOfRect()
+
+        override fun analyze(image: ImageProxy) {
+            val items = mutableListOf<Recognition>()
+
+//            val matForBitmap = Mat()
+////            Utils.bitmapToMat(imageProxyToBitmap(ctx, image), matForBitmap)
+//            val toBitmap = image.toBitmap(
+//                ctx,
+//                needToFlipForFrontCamera,
+//                imageInFrontCameraVertical
+//            )
+//            Utils.bitmapToMat(
+//                toBitmap, matForBitmap
+//            )
+//            cascadeClassifier.detectMultiScale(matForBitmap, faceDetections)
+//
+//            // Drawing boxes
+//            if (faceDetections.toArray().isNotEmpty()) {
+//                val rect = faceDetections.toArray()[0]
+//
+//                Log.d(
+//                    TAG,
+//                    "Rect: X: ${rect.x}, Y: ${rect.y}, Width: ${rect.width}, Height: ${rect.height}"
+//                )
+//
+//                val rect1 = Rect(
+//                    rect.x,
+//                    rect.y,
+//                    rect.x + rect.width,
+//                    rect.y + rect.height
+//                )
+//                viewFaceOverlay.setFace(rect1)
+////
+//
+//                lifecycleScope.launch(Dispatchers.Main) {
+//                    iv.setImageBitmap(
+//                        Bitmap.createBitmap(
+//                            toBitmap!!,
+//                            rect.x,
+//                            rect.x,
+//                            rect.width,
+//                            rect.width,
+//
+//                            )
+//                    )
+//                }
+//            } else {
+//                viewFaceOverlay.setFace(Rect())
+//            }
+
+
+
+            image.close()
+        }
     }
 
     private fun configureImageCapture(screenAspectRatio: Int) = ImageCapture.Builder()
@@ -223,10 +300,10 @@ class CameraXManager(
         .build()
 
     private fun configurePreviewUseCase(screenAspectRatio: Int) = Preview.Builder()
-        .also {
-            /**
+        /*.also {
+            *//**
              * Code for camera 2 capture callback
-             * */
+             * *//*
             val previewExtender = Camera2Interop.Extender(it)
 
             previewExtender.setSessionCaptureCallback(mCaptureCallback)
@@ -235,20 +312,19 @@ class CameraXManager(
                 CaptureRequest.STATISTICS_FACE_DETECT_MODE,
                 CameraMetadata.STATISTICS_FACE_DETECT_MODE_FULL
             )
-        }
-        .setTargetAspectRatio(screenAspectRatio)
+        }*/
+//        .setTargetAspectRatio(screenAspectRatio)
+        .setTargetResolution(Size(viewFinder.width, Helper.dpToPx(context, 300)))
         .setTargetRotation(viewFinder.display.rotation)
         .build()
         .also {
             it.setSurfaceProvider(viewFinder.surfaceProvider)
-
-
         }
 
     /** Returns true if the device has an available front camera. False otherwise */
     private fun hasFrontCamera() = cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)
 
-    private fun takePhoto() {
+    /*private fun takePhoto() {
         // Get a stable reference of the modifiable image capture use case
         val imageCapture = imageCapture ?: return
 
@@ -285,7 +361,7 @@ class CameraXManager(
                     }
                 }
             })
-    }
+    }*/
 
     private fun aspectRatio(width: Int, height: Int): Int {
         val previewRatio = max(width, height).toDouble() / min(width, height)

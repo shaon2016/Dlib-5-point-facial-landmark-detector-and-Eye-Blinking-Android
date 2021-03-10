@@ -12,7 +12,6 @@ import java.util.*
 
 object FileUtil {
     fun copyFileFromAsset(context: Context, assetFileName: String, outputPath: String) {
-        Log.d("DATATAG", "Called")
         val assetManager = context.assets
         try {
             val `in` = assetManager.open(assetFileName)
