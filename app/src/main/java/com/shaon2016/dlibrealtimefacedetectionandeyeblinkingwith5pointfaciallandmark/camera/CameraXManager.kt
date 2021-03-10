@@ -1,11 +1,7 @@
 package com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.camera
 
-import android.app.Activity
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Matrix
-import android.graphics.Rect
-import android.graphics.RectF
 import android.hardware.camera2.*
 import android.hardware.display.DisplayManager
 import android.net.Uri
@@ -14,7 +10,7 @@ import android.util.Log
 import android.util.Size
 import android.view.OrientationEventListener
 import android.view.Surface
-import androidx.camera.camera2.interop.Camera2Interop
+import android.widget.ImageView
 import androidx.camera.core.*
 import androidx.camera.core.impl.*
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -24,10 +20,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.lifecycleScope
+import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.FaceLandmarkOverlay
+import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.Native
 import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.OverlayView
+import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.R
 import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.Recognition
-import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.util.FileUtil
 import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.util.Helper
+import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.util.Helper.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
@@ -41,7 +40,7 @@ typealias RecognitionListener = (recognition: List<Recognition>) -> Unit
 class CameraXManager(
     private val context: Context,
     private val viewFinder: PreviewView,
-    private val mOverlayView: OverlayView
+    private val mOverlayView: FaceLandmarkOverlay
 ) : LifecycleOwner {
 
     private val TAG = "CameraXManager"
@@ -204,7 +203,7 @@ class CameraXManager(
 
             // Bind use cases to camera
             camera = cameraProvider.bindToLifecycle(
-                this, cameraSelector, preview, imageCapture
+                this, cameraSelector, preview, imageCapture, imageAnalyzer
             )
 
             analyzeImage()
@@ -286,6 +285,29 @@ class CameraXManager(
 //            } else {
 //                viewFaceOverlay.setFace(Rect())
 //            }
+
+            val toBitmap = image.toBitmap(ctx)
+
+
+            toBitmap?.let {
+                val width = toBitmap.width
+                val height = toBitmap.height
+                Log.d("DATATAG", "Image proxy ${Helper.dpToPx(ctx, height)}")
+
+                val pixels = IntArray(width * height)
+                toBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+                // Detect landmark
+                val landmarks = Native.detectLandmark(pixels, width, height)
+
+                lifecycleScope.launch(Dispatchers.Main) {
+
+                    landmarks?.let {
+                        mOverlayView.setLendmarks(landmarks)
+                    }
+
+                }
+            }
 
 
 

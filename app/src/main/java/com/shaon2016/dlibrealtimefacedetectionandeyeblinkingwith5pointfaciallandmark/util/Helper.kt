@@ -14,9 +14,7 @@ object Helper {
     }
 
     fun ImageProxy.toBitmap(
-        context: Context,
-        needToFlipForFrontCamera: Boolean,
-        imageInFrontCameraVertical: Boolean
+        context: Context
     ): Bitmap? {
         val image = image ?: return null
 

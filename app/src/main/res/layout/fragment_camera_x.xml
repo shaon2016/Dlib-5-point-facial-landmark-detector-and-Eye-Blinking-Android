@@ -11,7 +11,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-    <com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.OverlayView
+    <com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfaciallandmark.FaceLandmarkOverlay
         android:id="@+id/overlay_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

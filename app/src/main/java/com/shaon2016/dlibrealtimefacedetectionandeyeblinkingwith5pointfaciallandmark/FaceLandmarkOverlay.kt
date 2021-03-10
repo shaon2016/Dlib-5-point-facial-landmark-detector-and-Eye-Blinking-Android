@@ -4,11 +4,12 @@ import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.util.Log
+import android.view.View
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 
-class ImageWithLandmark(context: Context, attrs: AttributeSet) :
-    AppCompatImageView(context, attrs) {
+class FaceLandmarkOverlay(context: Context, attrs: AttributeSet) :
+    View(context, attrs) {
     // Stroke & paint.
     private val WIDTH = 2f
     private var mStrokeWidth = 2
@@ -37,20 +38,22 @@ class ImageWithLandmark(context: Context, attrs: AttributeSet) :
         super.onDrawForeground(canvas)
 
         landmarks?.let {
-            for (i in landmarks!!.indices step 2) {
-                val x = landmarks!![i]
-                val y = landmarks!![i + 1]
+            if (it.size > 2)
+                for (i in landmarks!!.indices step 2) {
+                    val x = landmarks!![i]
+                    val y = landmarks!![i + 1]
 
-                canvas?.drawCircle(x.toFloat(), y.toFloat(), 8f, mStrokePaint)
+                    canvas?.drawCircle(x.toFloat(), y.toFloat(), 8f, mStrokePaint)
 
-                Log.d("DATATAG", i.toString())
-            }
+                    Log.d("DATATAG", i.toString())
+                }
 
         }
     }
 
     fun setLendmarks(landmarks: LongArray) {
         this.landmarks = landmarks
+        invalidate()
     }
 
 

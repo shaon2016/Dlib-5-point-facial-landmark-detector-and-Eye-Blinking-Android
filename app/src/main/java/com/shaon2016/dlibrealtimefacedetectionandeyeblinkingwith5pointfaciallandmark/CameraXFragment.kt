@@ -10,7 +10,7 @@ import com.shaon2016.dlibrealtimefacedetectionandeyeblinkingwith5pointfacialland
 
 class CameraXFragment : Fragment() {
     private lateinit var viewFinder: PreviewView
-    private lateinit var overlayView: OverlayView
+    private lateinit var overlayView: FaceLandmarkOverlay
 
     private val cm by lazy {
         CameraXManager(requireContext(), viewFinder, overlayView)

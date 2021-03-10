@@ -29,11 +29,13 @@ import java.io.File
 private const val PERMISSIONS_REQUEST = 0x1045
 
 class MainActivity : AppCompatActivity() {
-    private val pb = findViewById<ProgressBar>(R.id.pb)
+    private lateinit var pb: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        pb = findViewById(R.id.pb)
 
         pb.visibility = View.VISIBLE
         loadDlibModel()

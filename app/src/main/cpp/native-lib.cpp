@@ -68,23 +68,23 @@ JNI_METHOD(detectLandmark)(
 
     pyramid_up(img);
 
-//    frontal_face_detector  detector = frontal_face_detector();
-//
-//    _mutex.lock();
-//    std::vector<rectangle> dets = detector(img);
-//    _mutex.unlock();
-//
-//    if(dets.size() < 1) {
-//        return 0;
-//    }
-//
-//    _mutex.lock();
-//    // here detector used for rectange (left, right , top, bottom data)
-//    dlib::full_object_detection points = shapePredictor(img, dets[0]);
-//    _mutex.unlock();
+    frontal_face_detector  detector = frontal_face_detector();
 
-    dlib::rectangle region(0, 0, width, height);
-    dlib::full_object_detection points = shapePredictor(img, region);
+    _mutex.lock();
+    std::vector<rectangle> dets = detector(img);
+    _mutex.unlock();
+
+    if(dets.size() < 1) {
+        return 0;
+    }
+
+    _mutex.lock();
+    // here detector used for rectange (left, right , top, bottom data)
+    dlib::full_object_detection points = shapePredictor(img, dets[0]);
+    _mutex.unlock();
+
+   /* dlib::rectangle region(0, 0, width, height);
+    dlib::full_object_detection points = shapePredictor(img, region);*/
 
     // result
     auto num_points = points.num_parts();
